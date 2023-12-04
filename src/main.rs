@@ -1,10 +1,10 @@
 #![allow(unused)]
 
-use rocket::{get, post, serde};
 use rocket::http::Status;
 use rocket::routes;
-use rocket::serde::{Serialize, Deserialize};
-use rocket::serde::json::{Json, Value, json};
+use rocket::serde::json::{Json, Value};
+use rocket::serde::{Deserialize, Serialize};
+use rocket::{get, post, serde};
 
 use std::path::PathBuf;
 
@@ -53,49 +53,82 @@ struct Reindeer {
     #[serde(default)]
     favorite_food: String,
     #[serde(default)]
-    #[serde(rename="cAnD13s_3ATeN-yesT3rdAy")]
-    c_an_d13s_3_a_te_n_yes_t3rd_ay: i32
+    #[serde(rename = "cAnD13s_3ATeN-yesT3rdAy")]
+    c_an_d13s_3_a_te_n_yes_t3rd_ay: i32,
 }
 
+type Reindeers = Vec<Reindeer>;
+
 #[post("/4/strength", data = "<reindeers>")]
-fn reindeer_cheer(reindeers: Json<Vec<Reindeer>>) -> String {
-    let res = reindeers
-        .iter()
-        .fold(0, |acc, item| acc + item.strength);
+fn reindeer_cheer(reindeers: Json<Reindeers>) -> String {
+    let res = reindeers.iter().fold(0, |acc, item| acc + item.strength);
 
     res.to_string()
 }
 
-#[post("/4/contest", data = "<reindeers>")] 
-fn cursed_candy_eating_contest(reindeers: Json<Vec<Reindeer>>) -> Value {
-    let fastest = reindeers
-        .iter()
-        .enumerate()
-        .fold(0, |acc, (i, item)| if reindeers[acc].speed < item.speed { i } else { acc });
-    let fastest_value = format!("Speeding past the finish line with a strength of {} is {}", reindeers[fastest].strength, reindeers[fastest].name);
+#[derive(Serialize)]
+#[serde(crate = "rocket::serde")]
+struct ReindeerSummary {
+    fastest: String,
+    tallest: String,
+    magician: String,
+    consumer: String,
+}
 
-    let tallest = reindeers
-        .iter()
-        .enumerate()
-        .fold(0, |acc, (i, item)| if reindeers[acc].height < item.height { i } else { acc } );
-    let tallest_value = format!("{} is standing tall with his {} cm wide antlers", reindeers[tallest].name, reindeers[tallest].antler_width);
+#[post("/4/contest", data = "<reindeers>")]
+fn cursed_candy_eating_contest(reindeers: Json<Vec<Reindeer>>) -> Json<ReindeerSummary> {
+    let fastest = reindeers.iter().enumerate().fold(0, |acc, (i, item)| {
+        if reindeers[acc].speed < item.speed {
+            i
+        } else {
+            acc
+        }
+    });
+    let fastest_value = format!(
+        "Speeding past the finish line with a strength of {} is {}",
+        reindeers[fastest].strength, reindeers[fastest].name
+    );
 
-    let magician = reindeers
-        .iter()
-        .enumerate()
-        .fold(0, |acc, (i, item)| if reindeers[acc].snow_magic_power < item.snow_magic_power { i } else { acc });
-    let magician_value = format!("{} could blast you away with a snow magic power of {}", reindeers[magician].name, reindeers[magician].snow_magic_power);
+    let tallest = reindeers.iter().enumerate().fold(0, |acc, (i, item)| {
+        if reindeers[acc].height < item.height {
+            i
+        } else {
+            acc
+        }
+    });
+    let tallest_value = format!(
+        "{} is standing tall with his {} cm wide antlers",
+        reindeers[tallest].name, reindeers[tallest].antler_width
+    );
 
-    let consumer = reindeers
-        .iter()
-        .enumerate()
-        .fold(0, |acc, (i, item)| if reindeers[acc].c_an_d13s_3_a_te_n_yes_t3rd_ay < item.c_an_d13s_3_a_te_n_yes_t3rd_ay { i } else { acc });
-    let consumer_value = format!("{} ate lots of candies, but also some {}", reindeers[consumer].name, reindeers[consumer].favorite_food);
+    let magician = reindeers.iter().enumerate().fold(0, |acc, (i, item)| {
+        if reindeers[acc].snow_magic_power < item.snow_magic_power {
+            i
+        } else {
+            acc
+        }
+    });
+    let magician_value = format!(
+        "{} could blast you away with a snow magic power of {}",
+        reindeers[magician].name, reindeers[magician].snow_magic_power
+    );
 
-    json!({
-        "fastest": fastest_value,
-        "tallest": tallest_value,
-        "magician": magician_value,
-        "consumer": consumer_value
+    let consumer = reindeers.iter().enumerate().fold(0, |acc, (i, item)| {
+        if reindeers[acc].c_an_d13s_3_a_te_n_yes_t3rd_ay < item.c_an_d13s_3_a_te_n_yes_t3rd_ay {
+            i
+        } else {
+            acc
+        }
+    });
+    let consumer_value = format!(
+        "{} ate lots of candies, but also some {}",
+        reindeers[consumer].name, reindeers[consumer].favorite_food
+    );
+
+    Json(ReindeerSummary {
+        fastest: fastest_value,
+        tallest: tallest_value,
+        magician: magician_value,
+        consumer: consumer_value,
     })
 }
