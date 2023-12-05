@@ -12,8 +12,9 @@ use std::path::PathBuf;
 async fn main() -> shuttle_rocket::ShuttleRocket {
     let rocket = rocket::build()
         .mount("/", routes![index])
-        .mount("/", routes![internal_server_error, cube_the_bits])
-        .mount("/", routes![reindeer_cheer, cursed_candy_eating_contest]);
+        .mount("/-1", routes![internal_server_error])
+        .mount("/1", routes![cube_the_bits])
+        .mount("/4", routes![reindeer_cheer, cursed_candy_eating_contest]);
     Ok(rocket.into())
 }
 
@@ -22,12 +23,12 @@ fn index() -> &'static str {
     "Hello, world!"
 }
 
-#[get("/-1/error")]
+#[get("/error")]
 fn internal_server_error() -> Status {
     Status::InternalServerError
 }
 
-#[get("/1/<path..>")]
+#[get("/<path..>")]
 fn cube_the_bits(path: PathBuf) -> String {
     path
         .iter()
@@ -58,7 +59,7 @@ struct Reindeer {
 
 type Reindeers = Vec<Reindeer>;
 
-#[post("/4/strength", data = "<reindeers>")]
+#[post("/strength", data = "<reindeers>")]
 fn reindeer_cheer(reindeers: Json<Reindeers>) -> String {
     reindeers
         .iter()
@@ -74,7 +75,7 @@ struct ReindeerSummary {
     consumer: String
 }
 
-#[post("/4/contest", data = "<reindeers>")]
+#[post("/contest", data = "<reindeers>")]
 fn cursed_candy_eating_contest(reindeers: Json<Vec<Reindeer>>) -> Json<ReindeerSummary> {
     let fastest = reindeers
         .iter()
