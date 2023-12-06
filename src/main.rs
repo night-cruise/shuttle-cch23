@@ -106,11 +106,7 @@ fn cursed_candy_eating_contest(reindeers: Json<Vec<Reindeer>>) -> Json<ReindeerS
 }
 
 #[post("/", data = "<text>")]
-fn never_count_on_elf(text: &str) -> Value {
-    if text.len() < 3 {
-        return json!({"elf": 0});
-    }
-    
+fn never_count_on_elf(text: &str) -> Value {   
     let elf_counts = text.matches("elf").count();
     let elf_on_shelf_counts = text.matches("elf on a shelf").count();
     let mut shelf_without_elf_on_counts = text.matches("shelf").count() - text.matches("elf on a shelf").count();
