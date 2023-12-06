@@ -2,7 +2,7 @@
 
 use rocket::http::Status;
 use rocket::routes;
-use rocket::serde::json::{json, Json, Value};
+use rocket::serde::json::{json, Json, Value, self};
 use rocket::serde::{Deserialize, Serialize};
 use rocket::{get, post, serde};
 
@@ -14,7 +14,8 @@ async fn main() -> shuttle_rocket::ShuttleRocket {
         .mount("/", routes![index])
         .mount("/-1", routes![internal_server_error])
         .mount("/1", routes![cube_the_bits])
-        .mount("/4", routes![reindeer_cheer, cursed_candy_eating_contest]);
+        .mount("/4", routes![reindeer_cheer, cursed_candy_eating_contest])
+        .mount("/6", routes![never_count_on_elf]);
     Ok(rocket.into())
 }
 
@@ -101,5 +102,22 @@ fn cursed_candy_eating_contest(reindeers: Json<Vec<Reindeer>>) -> Json<ReindeerS
         tallest: tallest_value,
         magician: magician_value,
         consumer: consumer_value
+    })
+}
+
+#[post("/", data = "<text>")]
+fn never_count_on_elf(text: &str) -> Value {
+    if text.len() < 3 {
+        return json!({"elf": 0});
+    }
+    
+    let elf_counts = text.matches("elf").count();
+    let elf_on_shelf_counts = text.matches("elf on a shelf").count();
+    let mut shelf_without_elf_on_counts = text.matches("shelf").count() - text.matches("elf on a shelf").count();
+
+    json!({
+        "elf": elf_counts,
+        "elf on a shelf": elf_on_shelf_counts,
+        "shelf with no elf on it": shelf_without_elf_on_counts
     })
 }
