@@ -1,12 +1,16 @@
 #![allow(unused)]
 
-use rocket::http::Status;
+use base64::Engine;
+use rocket::http::{Status, CookieJar};
 use rocket::routes;
-use rocket::serde::json::{json, Json, Value, self};
+use rocket::serde::json::{json, Json, Value, serde_json};
 use rocket::serde::{Deserialize, Serialize};
 use rocket::{get, post, serde};
 
+use base64::engine::general_purpose;
+
 use std::path::PathBuf;
+use std::collections::{HashMap, HashSet};
 
 #[shuttle_runtime::main]
 async fn main() -> shuttle_rocket::ShuttleRocket {
@@ -15,7 +19,9 @@ async fn main() -> shuttle_rocket::ShuttleRocket {
         .mount("/-1", routes![internal_server_error])
         .mount("/1", routes![cube_the_bits])
         .mount("/4", routes![reindeer_cheer, cursed_candy_eating_contest])
-        .mount("/6", routes![never_count_on_elf]);
+        .mount("/6", routes![never_count_on_elf])
+        .mount("/7", routes![based_encoding_64th_edition, secret_cookie_recipe]);
+
     Ok(rocket.into())
 }
 
@@ -116,4 +122,66 @@ fn never_count_on_elf(text: &str) -> Value {
         "elf on a shelf": elf_on_shelf_counts,
         "shelf with no elf on it": shelf_without_elf_on_counts
     })
+}
+
+#[get("/decode")]
+fn based_encoding_64th_edition(cookies: &CookieJar<'_>) -> Option<String> {
+    let recipe_encoded = cookies.get("recipe").map(|recipe| recipe.value())?;
+    
+    let recipe_decoded = general_purpose::STANDARD.decode(recipe_encoded).ok()?;
+
+    let recipe = String::from_utf8(recipe_decoded).ok()?;
+
+    Some(recipe)
+}
+
+#[derive(Deserialize, Debug)]
+struct SecretCookieRecipeReqBody {
+    recipe: HashMap<String, i32>,
+    pantry: HashMap<String, i32>,
+}
+
+#[derive(Serialize)] 
+struct SecretCookieRecipeRespBody {
+    cookies: i32,
+    pantry: HashMap<String, i32>,
+}
+
+#[get("/bake")]
+fn secret_cookie_recipe(cookies: &CookieJar<'_>) -> Option<Json<SecretCookieRecipeRespBody>> {
+    let recipe_encoded = cookies.get("recipe").map(|recipe| recipe.value())?;
+    
+    let recipe_decoded = general_purpose::STANDARD.decode(recipe_encoded).ok()?;
+
+    let SecretCookieRecipeReqBody { recipe, pantry } = serde_json::from_slice::<SecretCookieRecipeReqBody>(&recipe_decoded).ok()?;
+
+    let ingredients = recipe
+        .keys()
+        .map(|key| key.as_str())
+        .collect::<HashSet<&str>>()
+        .intersection(&pantry.keys().map(|key| key.as_str()).collect())
+        .map(|&key| key)
+        .collect::<Vec<&str>>();
+
+    let mut cookie_counts = i32::MAX;
+    for &ingredient in &ingredients {
+        if *recipe.get(ingredient).unwrap() == 0 {
+            continue;
+        }
+        cookie_counts = std::cmp::min(cookie_counts, pantry.get(ingredient).unwrap() / recipe.get(ingredient).unwrap());
+    }
+    if cookie_counts == i32::MAX {
+        cookie_counts = 0;
+    }
+
+    if cookie_counts == 0 {
+        return Some(Json(SecretCookieRecipeRespBody{ cookies: 0, pantry }));
+    }
+
+    let mut remain_pantry = pantry.clone();
+    for &ingredient in &ingredients {
+        *remain_pantry.get_mut(ingredient).unwrap() -= cookie_counts * recipe.get(ingredient).unwrap();
+    }
+
+    Some(Json(SecretCookieRecipeRespBody{ cookies: cookie_counts, pantry: remain_pantry }))
 }
