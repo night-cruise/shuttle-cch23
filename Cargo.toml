@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 base64 = "0.21.5"
+reqwest = { version = "0.11.22", features = ["json"] }
 rocket = { version = "0.5.0", features = ["json"] }
 serde = { version = "1.0.193", features = ["derive"] }
 shuttle-rocket = "0.34.0"

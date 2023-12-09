@@ -9,6 +9,7 @@ use rocket::{get, post, serde};
 
 use base64::engine::general_purpose;
 
+use std::error;
 use std::path::PathBuf;
 use std::collections::{HashMap, HashSet};
 
@@ -20,7 +21,8 @@ async fn main() -> shuttle_rocket::ShuttleRocket {
         .mount("/1", routes![cube_the_bits])
         .mount("/4", routes![reindeer_cheer, cursed_candy_eating_contest])
         .mount("/6", routes![never_count_on_elf])
-        .mount("/7", routes![based_encoding_64th_edition, secret_cookie_recipe]);
+        .mount("/7", routes![based_encoding_64th_edition, secret_cookie_recipe])
+        .mount("/8", routes![it_is_pikachu, that_is_gonna_leave_dent]);
 
     Ok(rocket.into())
 }
@@ -184,4 +186,36 @@ fn secret_cookie_recipe(cookies: &CookieJar<'_>) -> Option<Json<SecretCookieReci
     }
 
     Some(Json(SecretCookieRecipeRespBody{ cookies: cookie_counts, pantry: remain_pantry }))
+}
+
+#[derive(Deserialize)]
+struct ItIsPikachuRespBody {
+    weight: i32,
+}
+
+#[get("/weight/<pokedex_number>")]
+async fn it_is_pikachu(pokedex_number: i32) -> Option<String> {
+    let pika = reqwest::get(format!("https://pokeapi.co/api/v2/pokemon/{pokedex_number}"))
+        .await
+        .ok()?
+        .json::<ItIsPikachuRespBody>()
+        .await
+        .ok()?;
+    
+    Some((pika.weight / 10).to_string())
+}
+
+#[get("/drop/<pokedex_number>")]
+async fn that_is_gonna_leave_dent(pokedex_number: i32) -> Option<String> {
+    let pika = reqwest::get(format!("https://pokeapi.co/api/v2/pokemon/{pokedex_number}"))
+        .await
+        .ok()?
+        .json::<ItIsPikachuRespBody>()
+        .await
+        .ok()?;
+
+    let v = ((2.0 * 9.825 * 10.0) as f64).sqrt();
+    let p = (pika.weight as f64 / 10.0) * v;
+
+    Some(p.to_string())
 }
