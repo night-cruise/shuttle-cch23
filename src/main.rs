@@ -1,13 +1,19 @@
 #![allow(unused)]
 
-use base64::Engine;
-use rocket::http::{Status, CookieJar};
-use rocket::routes;
-use rocket::serde::json::{json, Json, Value, serde_json};
-use rocket::serde::{Deserialize, Serialize};
-use rocket::{get, post, serde};
 
+use rocket::tokio::io;
+use rocket::form::Form;
+use rocket::{get, post, serde};
+use rocket::{routes, FromForm};
+use rocket::fs::{NamedFile, TempFile};
+use rocket::http::{Status, CookieJar};
+use rocket::serde::{Deserialize, Serialize};
+use rocket::serde::json::{json, Json, Value, serde_json};
+
+use base64::Engine;
 use base64::engine::general_purpose;
+
+use image::GenericImageView;
 
 use std::error;
 use std::path::PathBuf;
@@ -22,7 +28,8 @@ async fn main() -> shuttle_rocket::ShuttleRocket {
         .mount("/4", routes![reindeer_cheer, cursed_candy_eating_contest])
         .mount("/6", routes![never_count_on_elf])
         .mount("/7", routes![based_encoding_64th_edition, secret_cookie_recipe])
-        .mount("/8", routes![it_is_pikachu, that_is_gonna_leave_dent]);
+        .mount("/8", routes![it_is_pikachu, that_is_gonna_leave_dent])
+        .mount("/11", routes![served_on_a_silver_platter, bull_mode_activated]);
 
     Ok(rocket.into())
 }
@@ -218,4 +225,37 @@ async fn that_is_gonna_leave_dent(pokedex_number: i32) -> Option<String> {
     let p = (pika.weight as f64 / 10.0) * v;
 
     Some(p.to_string())
+}
+
+#[get("/<path..>")]
+async fn served_on_a_silver_platter(path: PathBuf) -> Option<NamedFile> {
+    NamedFile::open(path).await.ok()
+}
+
+#[derive(FromForm)]
+struct ImageUpload<'r> {
+    image: TempFile<'r>,
+}
+
+#[post("/red_pixels", data = "<upload>")]
+async fn bull_mode_activated(upload: Form<ImageUpload<'_>>) -> Option<String> {
+    let mut stream = upload.image.open().await.ok()?;
+
+    let mut image = Vec::new();
+    io::copy(&mut stream, &mut image).await.ok()?;
+
+    let img = image::load_from_memory(&image).ok()?;
+    let (width, height) = img.dimensions();
+
+    let mut magical_red = 0;
+    for y in 0..height {
+        for x in 0..width {
+            let pixel = img.get_pixel(x, y);
+            if (pixel[1] as u16 + pixel[2] as u16) < pixel[0] as u16 {
+                magical_red += 1;
+            }
+        }
+    }
+
+    Some(magical_red.to_string())
 }
