@@ -15,6 +15,8 @@ use base64::engine::general_purpose;
 
 use image::GenericImageView;
 
+use regex::Regex;
+
 use std::error;
 use std::path::PathBuf;
 use std::collections::{HashMap, HashSet};
@@ -121,10 +123,19 @@ fn cursed_candy_eating_contest(reindeers: Json<Vec<Reindeer>>) -> Json<ReindeerS
 }
 
 #[post("/", data = "<text>")]
-fn never_count_on_elf(text: &str) -> Value {   
-    let elf_counts = text.matches("elf").count();
-    let elf_on_shelf_counts = text.matches("elf on a shelf").count();
-    let mut shelf_without_elf_on_counts = text.matches("shelf").count() - text.matches("elf on a shelf").count();
+fn never_count_on_elf(text: &str) -> Value {  
+    let find = |pattern| {
+        let mut start = 0;
+        let mut counts = 0usize;
+        while let Some(mat) = Regex::new(pattern).unwrap().find_at(text, start) {
+            counts += 1;
+            start = mat.start() + 1;
+        }
+        counts
+    }; 
+    let elf_counts = Regex::new("elf").unwrap().find_iter(text).count();
+    let elf_on_shelf_counts = find("elf on a shelf");
+    let shelf_without_elf_on_counts = Regex::new("shelf").unwrap().find_iter(text).count() - find("elf on a shelf");
 
     json!({
         "elf": elf_counts,
@@ -146,14 +157,14 @@ fn based_encoding_64th_edition(cookies: &CookieJar<'_>) -> Option<String> {
 
 #[derive(Deserialize, Debug)]
 struct SecretCookieRecipeReqBody {
-    recipe: HashMap<String, i32>,
-    pantry: HashMap<String, i32>,
+    recipe: HashMap<String, usize>,
+    pantry: HashMap<String, usize>,
 }
 
 #[derive(Serialize)] 
 struct SecretCookieRecipeRespBody {
-    cookies: i32,
-    pantry: HashMap<String, i32>,
+    cookies: usize,
+    pantry: HashMap<String, usize>,
 }
 
 #[get("/bake")]
@@ -172,14 +183,14 @@ fn secret_cookie_recipe(cookies: &CookieJar<'_>) -> Option<Json<SecretCookieReci
         .map(|&key| key)
         .collect::<Vec<&str>>();
 
-    let mut cookie_counts = i32::MAX;
+    let mut cookie_counts = usize::MAX;
     for &ingredient in &ingredients {
         if *recipe.get(ingredient).unwrap() == 0 {
             continue;
         }
         cookie_counts = std::cmp::min(cookie_counts, pantry.get(ingredient).unwrap() / recipe.get(ingredient).unwrap());
     }
-    if cookie_counts == i32::MAX {
+    if cookie_counts == usize::MAX {
         cookie_counts = 0;
     }
 
@@ -209,7 +220,7 @@ async fn it_is_pikachu(pokedex_number: i32) -> Option<String> {
         .await
         .ok()?;
     
-    Some((pika.weight / 10).to_string())
+    Some((pika.weight as f64 / 10.0).to_string())
 }
 
 #[get("/drop/<pokedex_number>")]
