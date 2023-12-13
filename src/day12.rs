@@ -1,17 +1,17 @@
-use rocket::State;
-use rocket::serde::json::{Value, Json, json};
+use rocket::serde::json::{json, Json, Value};
 use rocket::serde::Serialize;
+use rocket::State;
 use rocket::{get, post};
 
-use uuid::Uuid;
 use ulid::Ulid;
+use uuid::Uuid;
 
-use chrono::{Datelike, Utc, NaiveDateTime};
+use chrono::{Datelike, NaiveDateTime, Utc};
 
+use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Mutex;
 use std::time::SystemTime;
-use std::collections::HashMap;
 
 pub struct TimeKeeer {
     inner: Mutex<HashMap<String, SystemTime>>,
@@ -19,13 +19,16 @@ pub struct TimeKeeer {
 
 impl TimeKeeer {
     pub fn new() -> Self {
-        Self { inner: Mutex::new(HashMap::new()) }
+        Self {
+            inner: Mutex::new(HashMap::new()),
+        }
     }
 }
 
 #[post("/save/<s>")]
 pub fn set_time_persist(s: &str, time_keeper: &State<TimeKeeer>) {
-    time_keeper.inner
+    time_keeper
+        .inner
         .lock()
         .unwrap()
         .insert(s.to_owned(), SystemTime::now());
@@ -33,7 +36,8 @@ pub fn set_time_persist(s: &str, time_keeper: &State<TimeKeeer>) {
 
 #[get("/load/<s>")]
 pub fn get_time_persist(s: &str, time_keeper: &State<TimeKeeer>) -> Option<String> {
-    time_keeper.inner
+    time_keeper
+        .inner
         .lock()
         .unwrap()
         .get(s)
@@ -45,7 +49,11 @@ pub fn unanimously_legendary_identifier(ulids: Json<Vec<&str>>) -> Value {
     let res = ulids
         .iter()
         .rev()
-        .map(|&ulid| Uuid::from_bytes(Ulid::from_str(ulid).unwrap().to_bytes()).hyphenated().to_string())
+        .map(|&ulid| {
+            Uuid::from_bytes(Ulid::from_str(ulid).unwrap().to_bytes())
+                .hyphenated()
+                .to_string()
+        })
         .collect::<Vec<String>>();
 
     json!(res)
@@ -74,7 +82,11 @@ pub fn let_santa_broil(weekday: i32, ulids: Json<Vec<&str>>) -> Json<LetSantaBro
         let ulid = Ulid::from_str(ulid).unwrap();
         let timestamp = ulid.timestamp_ms();
 
-        let datetime = NaiveDateTime::from_timestamp_opt((timestamp / 1000) as i64, (timestamp % 1000) as u32 * 1_000_000).unwrap();
+        let datetime = NaiveDateTime::from_timestamp_opt(
+            (timestamp / 1000) as i64,
+            (timestamp % 1000) as u32 * 1_000_000,
+        )
+        .unwrap();
         if datetime.month() == 12 && datetime.day() == 24 {
             res.christmas_eve += 1;
         }

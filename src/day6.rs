@@ -1,10 +1,10 @@
 use rocket::post;
-use rocket::serde::json::{Value, json};
+use rocket::serde::json::{json, Value};
 
 use regex::Regex;
 
 #[post("/", data = "<text>")]
-pub fn never_count_on_elf(text: &str) -> Value {  
+pub fn never_count_on_elf(text: &str) -> Value {
     let find = |pattern| {
         let mut start = 0;
         let mut counts = 0usize;
@@ -13,10 +13,11 @@ pub fn never_count_on_elf(text: &str) -> Value {
             start = mat.start() + 1;
         }
         counts
-    }; 
+    };
     let elf_counts = Regex::new("elf").unwrap().find_iter(text).count();
     let elf_on_shelf_counts = find("elf on a shelf");
-    let shelf_without_elf_on_counts = Regex::new("shelf").unwrap().find_iter(text).count() - find("elf on a shelf");
+    let shelf_without_elf_on_counts =
+        Regex::new("shelf").unwrap().find_iter(text).count() - elf_on_shelf_counts;
 
     json!({
         "elf": elf_counts,

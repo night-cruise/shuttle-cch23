@@ -1,8 +1,8 @@
-use rocket::FromForm;
-use rocket::tokio::io;
 use rocket::form::Form;
-use rocket::{get, post};
 use rocket::fs::{NamedFile, TempFile};
+use rocket::tokio::io;
+use rocket::FromForm;
+use rocket::{get, post};
 
 use image::GenericImageView;
 
