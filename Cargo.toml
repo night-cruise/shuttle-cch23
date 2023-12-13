@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 base64 = "0.21.5"
+chrono = "0.4.31"
 image = "0.24.7"
 regex = "1.10.2"
 reqwest = { version = "0.11.22", features = ["json"] }
@@ -13,3 +14,5 @@ serde = { version = "1.0.193", features = ["derive"] }
 shuttle-rocket = "0.35.0"
 shuttle-runtime = "0.35.0"
 tokio = "1.26.0"
+ulid = "1.1.0"
+uuid = "1.6.1"
